@@ -70,24 +70,18 @@
             <a class="link" href="#projetos">Ver projetos</a>
           </div>
         </div>
-        <figure class="hero__media">
-          <div class="display">
-            <div class="display__bar">
-              <span class="display__label">Apresentação Mech Jr</span>
-              <button class="display__toggle" type="button" aria-pressed="false" aria-label="Pausar animação">
-                <svg class="icon icon--pause" aria-hidden="true"><use href="/assets/img/icons.svg#i-pause"></use></svg>
-                <svg class="icon icon--play" aria-hidden="true"><use href="/assets/img/icons.svg#i-play"></use></svg>
-              </button>
-            </div>
-            <div class="display__screen">
-              <video class="display__video" autoplay muted loop playsinline preload="metadata" poster="/assets/video/mechjr-apresentacao-poster.webp" width="1280" height="720" aria-label="Animação de apresentação da Mech Jr: engrenagens, desenho técnico, logotipo e o slogan O desafio surge, a Mech Jr resolve.">
-                <source src="/assets/video/mechjr-apresentacao.webm" type="video/webm">
-                <source src="/assets/video/mechjr-apresentacao.mp4" type="video/mp4">
-              </video>
-            </div>
-          </div>
-        </figure>
       </div>
+      <div class="hero__stage">
+        <video class="hero__video" autoplay muted loop playsinline preload="metadata" poster="/assets/video/mechjr-apresentacao-poster.webp" width="1280" height="720" aria-hidden="true" tabindex="-1">
+          <source src="/assets/video/mechjr-apresentacao.webm" type="video/webm">
+          <source src="/assets/video/mechjr-apresentacao.mp4" type="video/mp4">
+        </video>
+        <button class="hero__toggle" type="button" aria-pressed="false" aria-label="Pausar animação de fundo">
+          <svg class="icon icon--pause" aria-hidden="true"><use href="/assets/img/icons.svg#i-pause"></use></svg>
+          <svg class="icon icon--play" aria-hidden="true"><use href="/assets/img/icons.svg#i-play"></use></svg>
+        </button>
+      </div>
+      <a class="scroll-cue" href="#servicos"><span class="scroll-cue__label">Role para explorar</span><span class="scroll-cue__line" aria-hidden="true"></span></a>
     </section>
 
     <section class="section" id="servicos" aria-labelledby="servicos-title">
@@ -241,7 +235,6 @@
               <source type="image/avif" srcset="/assets/img/equipe-completa-800.avif 800w, /assets/img/equipe-completa-1400.avif 1400w, /assets/img/equipe-completa-2200.avif 2200w" sizes="(min-width: 1200px) 1150px, 100vw">
               <img src="/assets/img/equipe-completa-1400.webp" srcset="/assets/img/equipe-completa-800.webp 800w, /assets/img/equipe-completa-1400.webp 1400w, /assets/img/equipe-completa-2200.webp 2200w" sizes="(min-width: 1200px) 1150px, 100vw" width="3120" height="1276" loading="lazy" decoding="async" alt="Equipe da Mech Jr reunida, com dez integrantes em pé lado a lado.">
             </picture>
-            <figcaption class="gallery__cap"><span>Fig. 1</span>Equipe Mech Jr</figcaption>
           </figure>
           <div class="gallery__row">
           <figure class="gallery__item gallery__item--support">
@@ -249,14 +242,12 @@
               <source type="image/avif" srcset="/assets/img/equipe-femtej-480.avif 480w, /assets/img/equipe-femtej-800.avif 800w, /assets/img/equipe-femtej-1200.avif 1200w" sizes="(min-width: 900px) 40vw, 100vw">
               <img src="/assets/img/equipe-femtej-800.webp" srcset="/assets/img/equipe-femtej-480.webp 480w, /assets/img/equipe-femtej-800.webp 800w, /assets/img/equipe-femtej-1200.webp 1200w" sizes="(min-width: 900px) 40vw, 100vw" width="1200" height="1600" loading="lazy" decoding="async" alt="Cinco integrantes da Mech Jr com o banner da empresa em um evento da FEMTEJ.">
             </picture>
-            <figcaption class="gallery__cap"><span>Fig. 2</span>Evento da FEMTEJ</figcaption>
           </figure>
           <figure class="gallery__item gallery__item--support">
             <picture>
               <source type="image/avif" srcset="/assets/img/equipe-campus-600.avif 600w, /assets/img/equipe-campus-900.avif 900w, /assets/img/equipe-campus-1351.avif 1351w" sizes="(min-width: 900px) 55vw, 100vw">
               <img src="/assets/img/equipe-campus-900.webp" srcset="/assets/img/equipe-campus-600.webp 600w, /assets/img/equipe-campus-900.webp 900w, /assets/img/equipe-campus-1351.webp 1351w" sizes="(min-width: 900px) 55vw, 100vw" width="1351" height="1200" loading="lazy" decoding="async" alt="Cinco integrantes da Mech Jr ao ar livre, sorrindo para a câmera.">
             </picture>
-            <figcaption class="gallery__cap"><span>Fig. 3</span>Integrantes da equipe</figcaption>
           </figure>
           </div>
         </div>
@@ -399,7 +390,7 @@
         <li><a href="https://wa.me/5566996549345" target="_blank" rel="noopener noreferrer">WhatsApp<span class="sr-only"> (abre em nova aba)</span></a></li>
         <li><a href="https://www.instagram.com/mechjr.ej/" target="_blank" rel="noopener noreferrer">Instagram<span class="sr-only"> (abre em nova aba)</span></a></li>
       </ul>
-      <p class="site-footer__copy">© 2026 Mech Jr</p>
+      <p class="site-footer__copy">© 2026 Mech Jr <span class="site-footer__sep" aria-hidden="true">—</span> Desenvolvido por <a class="site-footer__dev" href="https://www.linkedin.com/in/claudio-alexandre-b44959357" target="_blank" rel="noopener noreferrer">Claudio Alexandre<span class="sr-only"> (LinkedIn, abre em nova aba)</span></a></p>
     </div>
   </footer>
 

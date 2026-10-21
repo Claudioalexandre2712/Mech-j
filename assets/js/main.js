@@ -6,11 +6,26 @@
 
   const root = document.documentElement;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const canAnimate = !reduceMotion && typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined';
+  const canReveal = !reduceMotion && 'IntersectionObserver' in window;
+  const canAnimate = canReveal && typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined';
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
-  root.classList.add(canAnimate ? 'motion-ready' : 'motion-off');
+  root.classList.add(canReveal ? 'motion-ready' : 'motion-off');
+
+  /* ---------- Revelação no scroll: só CSS (opacity + translate), sem GSAP.
+     O estado inicial já vem do CSS antes da primeira pintura, então não há
+     "aparece, some, aparece". Cada elemento entra uma vez. ---------- */
+  if (canReveal) {
+    const revealIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-in');
+        revealIO.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    $$('[data-reveal], .sec-head, .card, .project, .gallery__item, .partner, .about__text, .partners__cta, .contact__intro, .form').forEach((el) => revealIO.observe(el));
+  }
 
   let lenis = null;
   const header = $('.site-header');
@@ -268,14 +283,14 @@
   }
 
   /* ---------- Vídeo do hero: pausa manual, fora da tela e com movimento reduzido ---------- */
-  const video = $('.display__video');
-  const vToggle = $('.display__toggle');
+  const video = $('.hero__video');
+  const vToggle = $('.hero__toggle');
   if (video && vToggle) {
     let userPaused = reduceMotion;
     const sync = () => {
       const paused = video.paused;
       vToggle.setAttribute('aria-pressed', String(paused));
-      vToggle.setAttribute('aria-label', paused ? 'Reproduzir animação' : 'Pausar animação');
+      vToggle.setAttribute('aria-label', paused ? 'Reproduzir animação de fundo' : 'Pausar animação de fundo');
     };
     const play = () => { const r = video.play(); if (r && r.catch) r.catch(() => {}); };
     if (reduceMotion) { video.removeAttribute('autoplay'); video.pause(); }
@@ -312,32 +327,12 @@
   // Barra de progresso: só leitura de posição, neutra
   g.to('.progress__bar', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 0.3 } });
 
-  // Hero: o título sobe linha a linha e o display entra com um deslocamento curto
-  g.timeline({ defaults: { ease: EASE } })
-    .to('.hero .line__inner', { y: 0, duration: 0.9, stagger: 0.12 }, 0.1)
-    .from('.hero__media', { y: 24, duration: 0.9 }, 0.25);
+  // Hero: o título entra por animação CSS (sem esperar o GSAP).
+  // Aqui só um parallax leve do vídeo de fundo, amarrado ao scroll.
+  g.to('.hero__stage', { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+  g.to('.scroll-cue', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
 
-  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
-  idle(initScrollScenes, { timeout: 1200 });
-
-  function initScrollScenes() {
-  // Cards de serviço: entram em sequência curta, uma vez
-  g.from('.card', { opacity: 0, y: 16, duration: 0.6, ease: EASE, stagger: 0.06, clearProps: 'transform,opacity',
-    scrollTrigger: { trigger: '.cards', start: 'top 82%', once: true } });
-
-  // Cabeçalhos de seção: a linha de cota se estende do número até o título
-  $$('.sec-head').forEach((head) => {
-    g.timeline({ scrollTrigger: { trigger: head, start: 'top 85%', once: true }, defaults: { ease: EASE } })
-      .from($('.sec-head__rule', head), { scaleX: 0, duration: 0.9 })
-      .from($('.sec-head__title', head), { opacity: 0, x: -12, duration: 0.6 }, 0.15);
-  });
-
-  // Projetos: a imagem é revelada por máscara, de baixo para cima
-  $$('.project').forEach((p) => {
-    g.timeline({ scrollTrigger: { trigger: p, start: 'top 78%', once: true }, defaults: { ease: EASE } })
-      .from($('.project__media', p), { clipPath: 'inset(0% 0% 100% 0%)', duration: 0.9, clearProps: 'clipPath' })
-      .from($('.project__meta', p).children, { opacity: 0, y: 12, duration: 0.6, stagger: 0.06 }, 0.3);
-  });
+  // Entradas de cards, seções e fotos ficam no CSS (ver "Revelação no scroll").
 
   // Quem somos: o texto ganha contraste conforme a leitura avança
   const statement = $('.about__statement');
@@ -360,12 +355,6 @@
       scrollTrigger: { trigger: statement, start: 'top 80%', end: 'bottom 50%', scrub: 0.4 },
     });
   }
-  $$('.gallery__item').forEach((item, i) => {
-    g.from(item, {
-      clipPath: 'inset(0% 0% 100% 0%)', duration: 0.9, ease: EASE, delay: (i % 2) * 0.12, clearProps: 'clipPath',
-      scrollTrigger: { trigger: item, start: 'top 85%', once: true },
-    });
-  });
 
   // História: desktop fixa a seção e a cota avança; mobile só preenche a linha
   const mm = g.matchMedia();
@@ -390,10 +379,4 @@
     });
   });
 
-  // Parceiros: entrada curta, sem deslocamento
-  g.from('.partner', { opacity: 0, duration: 0.6, stagger: 0.1, ease: 'power1.out', scrollTrigger: { trigger: '.partners', start: 'top 80%', once: true } });
-
-  // Contato: chamada de fechamento sobe linha a linha
-  g.from('.contact__call .line__inner', { yPercent: 105, duration: 0.9, stagger: 0.12, ease: EASE, scrollTrigger: { trigger: '.contact__call', start: 'top 85%', once: true } });
-  }
 })();
