@@ -267,6 +267,33 @@
     });
   }
 
+  /* ---------- Vídeo do hero: pausa manual, fora da tela e com movimento reduzido ---------- */
+  const video = $('.display__video');
+  const vToggle = $('.display__toggle');
+  if (video && vToggle) {
+    let userPaused = reduceMotion;
+    const sync = () => {
+      const paused = video.paused;
+      vToggle.setAttribute('aria-pressed', String(paused));
+      vToggle.setAttribute('aria-label', paused ? 'Reproduzir animação' : 'Pausar animação');
+    };
+    const play = () => { const r = video.play(); if (r && r.catch) r.catch(() => {}); };
+    if (reduceMotion) { video.removeAttribute('autoplay'); video.pause(); }
+    video.addEventListener('play', sync);
+    video.addEventListener('pause', sync);
+    vToggle.addEventListener('click', () => {
+      userPaused = !video.paused;
+      if (userPaused) video.pause(); else play();
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) video.pause();
+        else if (!userPaused) play();
+      }, { threshold: 0.1 }).observe(video);
+    }
+    sync();
+  }
+
   /* ---------- Coreografia ---------- */
   if (!canAnimate) return;
 
@@ -285,41 +312,18 @@
   // Barra de progresso: só leitura de posição, neutra
   g.to('.progress__bar', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 0.3 } });
 
-  // Hero: o desenho técnico se traça uma vez, o título sobe linha a linha
-  const drawn = $$('.gear .d-gear, .d-dim');
-  drawn.forEach((el) => {
-    const len = el.getTotalLength ? el.getTotalLength() : 0;
-    el.style.strokeDasharray = `${len}`;
-    el.style.strokeDashoffset = `${len}`;
-  });
-  const intro = g.timeline({ defaults: { ease: EASE } });
-  intro
+  // Hero: o título sobe linha a linha e o display entra com um deslocamento curto
+  g.timeline({ defaults: { ease: EASE } })
     .to('.hero .line__inner', { y: 0, duration: 0.9, stagger: 0.12 }, 0.1)
-    .fromTo('.drawing__construct', { opacity: 0 }, { opacity: 1, duration: 0.9, ease: 'power1.out' }, 0.2)
-    .to(drawn, { strokeDashoffset: 0, duration: 1.6, ease: 'power2.inOut', stagger: 0.08,
-      onComplete: () => drawn.forEach((el) => { el.style.strokeDasharray = ''; el.style.strokeDashoffset = ''; }) }, 0.3);
+    .from('.hero__media', { y: 24, duration: 0.9 }, 0.25);
 
   const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
   idle(initScrollScenes, { timeout: 1200 });
 
   function initScrollScenes() {
-  // Engrenagens engrenadas: relação 24:12, a pequena gira o dobro e em sentido oposto
-  const turns = { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.6 };
-  g.to('.gear--big', { rotation: 90, svgOrigin: '300 300', ease: 'none', scrollTrigger: turns });
-  g.to('.gear--small', { rotation: -180, svgOrigin: '444 300', ease: 'none', scrollTrigger: { ...turns } });
-
-  // Parallax mínimo com o mouse (só ponteiro fino)
-  if (window.matchMedia('(pointer: fine)').matches && hero) {
-    const drawing = $('.drawing');
-    const qx = g.quickTo(drawing, 'x', { duration: 0.9, ease: 'power3.out' });
-    const qy = g.quickTo(drawing, 'y', { duration: 0.9, ease: 'power3.out' });
-    hero.addEventListener('pointermove', (e) => {
-      const r = hero.getBoundingClientRect();
-      qx(((e.clientX - r.left) / r.width - 0.5) * -12);
-      qy(((e.clientY - r.top) / r.height - 0.5) * -12);
-    });
-    hero.addEventListener('pointerleave', () => { qx(0); qy(0); });
-  }
+  // Cards de serviço: entram em sequência curta, uma vez
+  g.from('.card', { opacity: 0, y: 16, duration: 0.6, ease: EASE, stagger: 0.06, clearProps: 'transform,opacity',
+    scrollTrigger: { trigger: '.cards', start: 'top 82%', once: true } });
 
   // Cabeçalhos de seção: a linha de cota se estende do número até o título
   $$('.sec-head').forEach((head) => {

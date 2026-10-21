@@ -11,6 +11,7 @@ assets/js/main.js          interações, formulário e coreografia de scroll
 assets/vendor/             GSAP 3.12.5, ScrollTrigger e Lenis 1.1.13 (servidos localmente)
 assets/fonts/              Archivo variável (pesos 100-900, larguras 62-125%), OFL
 assets/img/                imagens AVIF/WebP em vários tamanhos, ícones Phosphor (icons.svg)
+assets/video/              apresentação do hero (WebM 362 KB, MP4 676 KB, poster)
 api/contato.py             função Python (Flask) da Vercel: POST /api/contato
 vercel.json                cabeçalhos de segurança e cache, configuração da função
 dev_server.py              servidor local (estático + API); não é usado na Vercel
