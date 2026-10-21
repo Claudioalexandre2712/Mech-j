@@ -329,8 +329,14 @@
 
   // Hero: o título entra por animação CSS (sem esperar o GSAP).
   // Aqui só um parallax leve do vídeo de fundo, amarrado ao scroll.
-  g.to('.hero__stage', { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-  g.to('.scroll-cue', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
+  // Parallax só no desktop. O matchMedia reverte o tween ao sair do breakpoint,
+  // e o mobile limpa qualquer transform residual: o vídeo volta ao fluxo normal.
+  const mm = g.matchMedia();
+  mm.add('(min-width: 900px)', () => {
+    g.to('.hero__stage', { y: 60, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    g.to('.scroll-cue', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
+  });
+  mm.add('(max-width: 899.98px)', () => { g.set('.hero__stage, .scroll-cue', { clearProps: 'all' }); });
 
   // Entradas de cards, seções e fotos ficam no CSS (ver "Revelação no scroll").
 
@@ -356,26 +362,22 @@
     });
   }
 
-  // História: desktop fixa a seção e a cota avança; mobile só preenche a linha
-  const mm = g.matchMedia();
+  // História: sem pin. A linha preenche conforme a rolagem normal e cada marco
+  // acende quando a linha chega nele (horizontal no desktop, vertical no mobile).
   const historyEl = $('.history');
   const milestones = $$('.milestone');
-  const activate = (p) => milestones.forEach((m, i) => m.classList.toggle('is-active', p >= [0.02, 0.5, 0.96][i]));
-  mm.add('(min-width: 900px)', () => {
-    historyEl.classList.add('history--pinned');
-    const tween = g.fromTo('.timeline__fill', { scaleX: 0 }, {
-      scaleX: 1, ease: 'none',
+  const activate = (p) => milestones.forEach((m, i) => m.classList.toggle('is-active', p >= [0.05, 0.5, 0.95][i]));
+  historyEl.classList.add('history--live');
+  mm.add({ desk: '(min-width: 900px)', mob: '(max-width: 899.98px)' }, (ctx) => {
+    const axis = ctx.conditions.desk ? 'scaleX' : 'scaleY';
+    g.set('.timeline__fill', { clearProps: 'transform' });
+    g.fromTo('.timeline__fill', { [axis]: 0 }, {
+      [axis]: 1, ease: 'none',
       scrollTrigger: {
-        trigger: historyEl, start: 'top top', end: '+=140%', pin: true, scrub: 0.5,
+        trigger: '.timeline', start: ctx.conditions.desk ? 'top 85%' : 'top 75%', end: ctx.conditions.desk ? 'bottom 45%' : 'bottom 55%', scrub: 0.4,
         onUpdate: (self) => activate(self.progress),
+        onRefresh: (self) => activate(self.progress),
       },
-    });
-    return () => { historyEl.classList.remove('history--pinned'); milestones.forEach((m) => m.classList.remove('is-active')); tween.kill(); };
-  });
-  mm.add('(max-width: 899.98px)', () => {
-    g.fromTo('.timeline__fill', { scaleY: 0 }, {
-      scaleY: 1, ease: 'none',
-      scrollTrigger: { trigger: '.timeline', start: 'top 75%', end: 'bottom 55%', scrub: 0.5 },
     });
   });
 

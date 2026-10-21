@@ -154,12 +154,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Header */
 .site-header {
   position: fixed; inset: 0 0 auto 0; z-index: 50;
-  background: rgb(243 243 240 / 0.94);
+  /* Fundo quase opaco em vez de backdrop-filter: o blur recompunha a área do header a cada quadro de scroll */
+  background: rgb(243 243 240 / 0.97);
   border-bottom: 1px solid transparent;
   transition: border-color var(--t-fast) var(--ease);
-}
-@supports (backdrop-filter: blur(1px)) {
-  .site-header { background: rgb(243 243 240 / 0.85); backdrop-filter: saturate(1.2) blur(10px); }
 }
 .site-header.is-compact { border-bottom-color: var(--line); box-shadow: 0 6px 20px -12px rgb(29 32 35 / 0.18); }
 .site-header__inner {
@@ -179,7 +177,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   background: none; border: 0; cursor: pointer; font-weight: 600;
 }
 .nav {
-  position: fixed; inset: var(--header-h) 0 auto 0;
+  /* Ancorado à base do header (fixo): acompanha a altura compacta, sem fresta */
+  position: absolute; top: 100%; left: 0; right: 0;
   display: none; flex-direction: column; gap: var(--s-1);
   padding: var(--s-4) var(--margin) var(--s-6);
   background: var(--paper); border-bottom: var(--hair);
@@ -226,7 +225,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
   -webkit-mask-image: radial-gradient(ellipse 85% 75% at 70% 45%, #000 35%, transparent 100%);
           mask-image: radial-gradient(ellipse 85% 75% at 70% 45%, #000 35%, transparent 100%);
 }
-.hero__grid { display: grid; gap: var(--s-7); align-items: center; }
+.hero__grid { position: relative; z-index: 1; display: grid; gap: var(--s-7); align-items: center; }
+/* A malha fica por cima do vídeo: a prancha continua contínua sobre a animação */
+.hero::before { z-index: 0; }
 .hero__kicker {
   display: inline-flex; align-items: center; gap: var(--s-3);
   color: var(--ink-2); font-size: var(--fs-small); font-weight: 600; margin-bottom: var(--s-5);
@@ -246,12 +247,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
   position: relative; z-index: -1; margin: var(--s-6) calc(-1 * var(--margin)) 0;
   aspect-ratio: 16 / 10;
 }
-.hero__video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  mix-blend-mode: multiply; opacity: 0.92;
-  -webkit-mask-image: radial-gradient(ellipse 62% 60% at 50% 50%, #000 45%, transparent 100%);
-          mask-image: radial-gradient(ellipse 62% 60% at 50% 50%, #000 45%, transparent 100%);
-}
+/* A borda já sai do arquivo fundida em #F3F3F0 (vinheta gravada no vídeo):
+   sem mask-image nem mix-blend-mode, o navegador só compõe uma camada opaca */
+.hero__video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hero__toggle {
   position: absolute; right: var(--margin); bottom: var(--s-2); z-index: 2;
   display: grid; place-items: center; width: 36px; height: 36px;
@@ -268,11 +266,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (min-width: 900px) {
   .hero__stage {
     position: absolute; top: 50%; right: -4%; width: 68%; margin: 0; aspect-ratio: 16 / 9; translate: 0 -46%;
-  }
-  .hero__video {
-    object-position: 50% 50%;
-    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, transparent 100%);
-            mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, transparent 100%);
+    will-change: transform;
   }
   .hero__toggle { right: calc(4% / 0.68 + var(--margin)); bottom: 6%; }
   .scroll-cue {
@@ -480,8 +474,6 @@ html.modal-open { overflow: hidden; }
 .milestone__text { color: var(--ink-2); margin-top: var(--s-2); max-width: 24em; }
 
 @media (min-width: 900px) {
-  .history__inner { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
-  .history { padding-top: 0; }
   .timeline { margin-left: calc((100% - 11 * var(--gutter)) / 12 * 2 + 2 * var(--gutter)); padding-top: var(--s-7); }
   .timeline__track { left: 0; right: 0; top: 5px; bottom: auto; width: auto; height: 1px; }
   .timeline__fill { transform-origin: 0 50%; }
@@ -489,9 +481,10 @@ html.modal-open { overflow: hidden; }
   .milestone { padding-left: 0; padding-top: var(--s-6); }
   .milestone__tick { top: 0; }
 }
-/* Marcos ainda não alcançados: ano em --ink-3 (texto grande, 3,5:1); descrição mantém --ink-2 */
-.history--pinned .milestone__year { color: var(--ink-3); transition: color var(--t-in) var(--ease); }
-.history--pinned .milestone.is-active .milestone__year { color: var(--ink); }
+/* Marcos ainda não alcançados (só com JS): ano apagado, acende ao rolar */
+.history--live .milestone__year, .history--live .milestone__text { transition: color var(--t-draw) var(--ease); }
+.history--live .milestone__tick { transition: background-color var(--t-in) var(--ease), transform 500ms var(--spring); }
+.history--live .milestone.is-active .milestone__tick { transform: scale(1.25); }
 
 /* Faixa escura (História): dá peso e ritmo à página */
 .band-dark { background: var(--dark); color: var(--on-dark); position: relative; isolation: isolate; padding-bottom: var(--section); }
@@ -508,12 +501,12 @@ html.modal-open { overflow: hidden; }
 .band-dark .sec-head__rule, .band-dark .sec-head__rule::before, .band-dark .sec-head__rule::after { background: rgb(243 243 240 / 0.2); }
 .band-dark .timeline__track { background: rgb(243 243 240 / 0.2); }
 .band-dark .milestone__tick { background: var(--dark); }
-.band-dark .milestone.is-active .milestone__tick, .band-dark:not(.history--pinned) .milestone__tick { background: var(--brand); }
+.band-dark .milestone.is-active .milestone__tick, .band-dark:not(.history--live) .milestone__tick { background: var(--brand); }
 .band-dark .milestone__text { color: var(--on-dark-2); }
-.band-dark.history--pinned .milestone__year { color: var(--on-dark-3); }
-.band-dark.history--pinned .milestone.is-active .milestone__year { color: var(--on-dark); }
+.band-dark .milestone__year { color: var(--on-dark); }
+.band-dark.history--live .milestone:not(.is-active) .milestone__year { color: var(--on-dark-3); }
+.band-dark.history--live .milestone:not(.is-active) .milestone__text { color: var(--on-dark-3); }
 .band-dark :focus-visible { outline-color: var(--brand-on-dark); }
-@media (min-width: 900px) { .band-dark { padding-bottom: 0; } }
 
 /* 05 Parceiros */
 .partners { display: grid; gap: var(--s-7); }
@@ -610,17 +603,26 @@ html.modal-open { overflow: hidden; }
 .site-footer :focus-visible { outline-color: var(--brand-on-dark); }
 .site-footer__links a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
 .site-footer__links a:hover { color: var(--on-dark); text-decoration: underline; text-underline-offset: 4px; }
-.site-footer__sep { margin: 0 0.4em; color: var(--on-dark-3); }
-.site-footer__dev {
-  color: var(--on-dark); text-decoration: none;
-  background-image: linear-gradient(var(--brand-on-dark), var(--brand-on-dark));
-  background-size: 0 1px; background-position: 0 100%; background-repeat: no-repeat;
-  transition: background-size 400ms var(--ease), color var(--t-fast) var(--ease);
+/* Sub-footer: copyright à esquerda, créditos do desenvolvedor à direita */
+.subfooter {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-3) var(--s-6);
+  margin-top: var(--s-6); padding-top: var(--s-5); border-top: 1px solid rgb(243 243 240 / 0.12);
+  color: var(--on-dark-2); font-size: 0.8125rem;
 }
-.site-footer__dev:hover, .site-footer__dev:focus-visible { color: #fff; background-size: 100% 1px; }
+.subfooter__dev { display: flex; align-items: center; gap: var(--s-2); }
+.subfooter__dev strong { color: var(--on-dark); font-weight: 600; }
+.subfooter__icon {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  color: var(--on-dark-2); border: 1px solid rgb(243 243 240 / 0.14);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background-color var(--t-fast) var(--ease), transform 450ms var(--spring);
+}
+.subfooter__dev span { margin-right: var(--s-2); }
+.subfooter__icon .icon { width: 16px; height: 16px; }
+.subfooter__icon:hover, .subfooter__icon:focus-visible {
+  color: #fff; border-color: var(--brand-on-dark); background: rgb(232 128 58 / 0.14); transform: translateY(-2px);
+}
 @media (min-width: 900px) {
-  .site-footer { padding-bottom: var(--s-7); }
-  .site-footer__inner { grid-template-columns: 1fr auto auto; align-items: center; gap: var(--s-7); }
+  .site-footer__inner { grid-template-columns: 1fr auto; align-items: center; gap: var(--s-7); }
 }
 
 /* WhatsApp discreto */
