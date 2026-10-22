@@ -24,7 +24,7 @@
         revealIO.unobserve(entry.target);
       });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
-    $$('[data-reveal], .sec-head, .card, .project, .gallery__item, .partner, .about__text, .partners__cta, .contact__intro, .form').forEach((el) => revealIO.observe(el));
+    $$('[data-reveal], .sec-head, .card, .project, .gallery__item, .partner, .about__text, .partners__cta, .contact__intro, .form, .timeline').forEach((el) => revealIO.observe(el));
   }
 
   let lenis = null;
@@ -282,31 +282,16 @@
     });
   }
 
-  /* ---------- Vídeo do hero: pausa manual, fora da tela e com movimento reduzido ---------- */
-  const video = $('.hero__video');
-  const vToggle = $('.hero__toggle');
-  if (video && vToggle) {
-    let userPaused = reduceMotion;
-    const sync = () => {
-      const paused = video.paused;
-      vToggle.setAttribute('aria-pressed', String(paused));
-      vToggle.setAttribute('aria-label', paused ? 'Reproduzir animação de fundo' : 'Pausar animação de fundo');
-    };
-    const play = () => { const r = video.play(); if (r && r.catch) r.catch(() => {}); };
-    if (reduceMotion) { video.removeAttribute('autoplay'); video.pause(); }
-    video.addEventListener('play', sync);
-    video.addEventListener('pause', sync);
-    vToggle.addEventListener('click', () => {
-      userPaused = !video.paused;
-      if (userPaused) video.pause(); else play();
+  /* ---------- Hero: botão que pausa as animações de fundo ---------- */
+  const heroToggle = $('.hero__toggle');
+  let heroPaused = false;
+  if (hero && heroToggle) {
+    heroToggle.addEventListener('click', () => {
+      heroPaused = !heroPaused;
+      hero.classList.toggle('is-paused', heroPaused);
+      heroToggle.setAttribute('aria-pressed', String(heroPaused));
+      heroToggle.setAttribute('aria-label', heroPaused ? 'Retomar animações de fundo' : 'Pausar animações de fundo');
     });
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(([entry]) => {
-        if (!entry.isIntersecting) video.pause();
-        else if (!userPaused) play();
-      }, { threshold: 0.1 }).observe(video);
-    }
-    sync();
   }
 
   /* ---------- Coreografia ---------- */
@@ -316,9 +301,10 @@
   g.registerPlugin(ST);
   const EASE = 'expo.out';
 
-  // Lenis só com mouse/trackpad: no toque a rolagem nativa já é a mais natural
-  if (typeof window.Lenis === 'function' && window.matchMedia('(pointer: fine)').matches) {
-    lenis = new window.Lenis({ duration: 1.1, easing: (t) => 1 - Math.pow(1 - t, 3) });
+  // Lenis: um único RAF (o ticker do GSAP) move Lenis e ScrollTrigger juntos.
+  // No toque (syncTouch desligado) a rolagem continua nativa, como deve ser.
+  if (typeof window.Lenis === 'function') {
+    lenis = new window.Lenis({ lerp: 0.085, wheelMultiplier: 0.95, smoothWheel: true });
     lenis.on('scroll', ST.update);
     g.ticker.add((time) => lenis.raf(time * 1000));
     g.ticker.lagSmoothing(0);
@@ -327,18 +313,62 @@
   // Barra de progresso: só leitura de posição, neutra
   g.to('.progress__bar', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 0.3 } });
 
-  // Hero: o título entra por animação CSS (sem esperar o GSAP).
-  // Aqui só um parallax leve do vídeo de fundo, amarrado ao scroll.
-  // Parallax só no desktop. O matchMedia reverte o tween ao sair do breakpoint,
-  // e o mobile limpa qualquer transform residual: o vídeo volta ao fluxo normal.
+  // Hero: parallax por camadas, só no desktop. O matchMedia desfaz tudo ao sair do breakpoint.
   const mm = g.matchMedia();
   mm.add('(min-width: 900px)', () => {
-    g.to('.hero__stage', { y: 60, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    const st = { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true };
+    g.to('.hero__stage', { y: 70, ease: 'none', scrollTrigger: st });
+    g.to('.hero-art--bg', { y: -60, ease: 'none', scrollTrigger: st });
+    g.to('.hero-art--mid', { y: -28, ease: 'none', scrollTrigger: st });
+    g.to('.hero__copy', { y: -40, ease: 'none', scrollTrigger: st });
     g.to('.scroll-cue', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
   });
-  mm.add('(max-width: 899.98px)', () => { g.set('.hero__stage, .scroll-cue', { clearProps: 'all' }); });
+  mm.add('(max-width: 899.98px)', () => { g.set('.hero__stage, .hero-art--bg, .hero-art--mid, .hero__copy, .scroll-cue', { clearProps: 'all' }); });
+
+  // Hero: o conjunto mecânico.
+  // - Engrenagem central: ângulo = função direta da posição de rolagem
+  //   (desce, gira; sobe, volta; parou, parou).
+  // - Pás: sentido oposto, meia velocidade e com atraso amortecido (alcança a
+  //   engrenagem com suavidade), mais uma deriva lenta própria.
+  // - Engrenagens laterais: acompanham a central pela relação de dentes.
+  const gearEl = $('.hero-mech__gear');
+  const bladesEl = $('.hero-mech__blades');
+  const sideGears = $$('.hero-art__spin').map((el) => ({ el, ratio: parseFloat(el.dataset.ratio) || 0 }));
+  if (gearEl && bladesEl) {
+    const DEG_PER_PX = 0.22;
+    const BLADE_RATIO = -0.5;
+    const DRIFT = 2.4;            // graus por segundo
+    let heroVisible = true;
+    let bladeAngle = 0;
+    let drift = 0;
+    let lastSide = NaN;
+    new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
+    const rotate = (el, deg) => { el.style.transform = `rotate(${deg.toFixed(2)}deg)`; };
+    g.ticker.add((time, dt) => {
+      if (!heroVisible) return;
+      const y = lenis ? lenis.scroll : window.scrollY;
+      const gearAngle = y * DEG_PER_PX;
+      if (!heroPaused) drift += DRIFT * Math.min(dt, 100) / 1000;
+      const target = gearAngle * BLADE_RATIO - drift;
+      bladeAngle += (target - bladeAngle) * 0.06;
+      rotate(gearEl, gearAngle);
+      rotate(bladesEl, bladeAngle);
+      if (gearAngle !== lastSide) {
+        lastSide = gearAngle;
+        sideGears.forEach(({ el, ratio }) => el.setAttribute('transform', `rotate(${(gearAngle * ratio).toFixed(2)})`));
+      }
+    });
+  }
 
   // Entradas de cards, seções e fotos ficam no CSS (ver "Revelação no scroll").
+  // Aqui só o parallax interno das imagens dos projetos, via variável CSS
+  // (não toca em opacity/translate do card, que são do CSS).
+  mm.add('(min-width: 900px)', () => {
+    $$('.project').forEach((article) => {
+      const img = $('.project__media img', article);
+      g.fromTo(img, { '--py': '-18px' }, { '--py': '18px', ease: 'none', scrollTrigger: { trigger: article, start: 'top bottom', end: 'bottom top', scrub: true } });
+    });
+  });
 
   // Quem somos: o texto ganha contraste conforme a leitura avança
   const statement = $('.about__statement');
