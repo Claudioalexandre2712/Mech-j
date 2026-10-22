@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .env
 .vercel
+node_modules/
+.lighthouse/
+preview/
