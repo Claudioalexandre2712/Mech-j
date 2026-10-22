@@ -282,6 +282,18 @@
     });
   }
 
+  /* ---------- Hero: botão que pausa as animações de fundo ---------- */
+  const heroToggle = $('.hero__toggle');
+  let heroPaused = false;
+  if (hero && heroToggle) {
+    heroToggle.addEventListener('click', () => {
+      heroPaused = !heroPaused;
+      hero.classList.toggle('is-paused', heroPaused);
+      heroToggle.setAttribute('aria-pressed', String(heroPaused));
+      heroToggle.setAttribute('aria-label', heroPaused ? 'Retomar animações de fundo' : 'Pausar animações de fundo');
+    });
+  }
+
   /* ---------- Coreografia ---------- */
   if (!canAnimate) return;
 
@@ -289,134 +301,80 @@
   g.registerPlugin(ST);
   const EASE = 'expo.out';
 
-  // Lenis: integrado ao GSAP Ticker com wheelMultiplier: 0.9 e duration: 1.2
-  // Devolve o peso e a inércia de site de luxo, eliminando o scroll seco e supersônico
-  if (!reduceMotion && typeof window.Lenis === 'function') {
-    lenis = new window.Lenis({
-      duration: 1.2,
-      wheelMultiplier: 0.9,
-      touchMultiplier: 1.4,
-      smoothWheel: true,
-      infinite: false,
-    });
+  // Lenis: um único RAF (o ticker do GSAP) move Lenis e ScrollTrigger juntos.
+  // No toque (syncTouch desligado) a rolagem continua nativa, como deve ser.
+  if (typeof window.Lenis === 'function') {
+    lenis = new window.Lenis({ lerp: 0.085, wheelMultiplier: 0.95, smoothWheel: true });
     lenis.on('scroll', ST.update);
     g.ticker.add((time) => lenis.raf(time * 1000));
     g.ticker.lagSmoothing(0);
   }
 
-  // Barra de progresso: leitura neutra de rolagem
+  // Barra de progresso: só leitura de posição, neutra
   g.to('.progress__bar', { scaleX: 1, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: 0.3 } });
 
-  // Hero: Cinemática das Engrenagens & Prancha Técnica SVG
-  const mechCenter = $('#mech-symbol-center');
-  const gearLeftT1 = $('#gear-left-t1');
-  const gearLeftT2 = $('#gear-left-t2');
-  const gearRightG1 = $('#gear-right-g1');
-  const gearRightG2 = $('#gear-right-g2');
-  const gearRightG3 = $('#gear-right-g3');
-  const cadSlow = $('#cad-parallax-slow');
-
-  if (mechCenter) {
-    // 1. Rotação Idle contínua e ultralenta no topo
-    const IDLE_TIME = 90; // 90s para volta completa (ultrassuave e contínua)
-    g.to(mechCenter, { rotation: '+=360', duration: IDLE_TIME, repeat: -1, ease: 'none' });
-    if (gearLeftT1) g.to(gearLeftT1, { rotation: '-=360', duration: IDLE_TIME * (22 / 10), repeat: -1, ease: 'none' });
-    if (gearLeftT2) g.to(gearLeftT2, { rotation: '+=360', duration: IDLE_TIME * (14 / 10), repeat: -1, ease: 'none' });
-    if (gearRightG1) g.to(gearRightG1, { rotation: '-=360', duration: IDLE_TIME * (18 / 10), repeat: -1, ease: 'none' });
-    if (gearRightG2) g.to(gearRightG2, { rotation: '+=360', duration: IDLE_TIME * (12 / 10), repeat: -1, ease: 'none' });
-    if (gearRightG3) g.to(gearRightG3, { rotation: '-=360', duration: IDLE_TIME * (16 / 10), repeat: -1, ease: 'none' });
-
-    // 2. Cinemática GSAP ScrollTrigger: transmissão proporcional real
-    const heroTimeline = g.timeline({
-      scrollTrigger: {
-        trigger: '.hero',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 1.2,
-      }
-    });
-
-    heroTimeline.to(mechCenter, { rotation: '+=240', ease: 'none' }, 0);
-    if (gearLeftT1) heroTimeline.to(gearLeftT1, { rotation: '-=109.1', ease: 'none' }, 0);
-    if (gearLeftT2) heroTimeline.to(gearLeftT2, { rotation: '+=171.4', ease: 'none' }, 0);
-    if (gearRightG1) heroTimeline.to(gearRightG1, { rotation: '-=133.3', ease: 'none' }, 0);
-    if (gearRightG2) heroTimeline.to(gearRightG2, { rotation: '+=200', ease: 'none' }, 0);
-    if (gearRightG3) heroTimeline.to(gearRightG3, { rotation: '-=150', ease: 'none' }, 0);
-    if (cadSlow) heroTimeline.to(cadSlow, { y: -36, ease: 'none' }, 0);
-  }
-
-  // Parallax leve no Hero apenas no desktop
+  // Hero: parallax por camadas, só no desktop. O matchMedia desfaz tudo ao sair do breakpoint.
   const mm = g.matchMedia();
   mm.add('(min-width: 900px)', () => {
     const st = { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true };
-    g.to('.hero__copy', { y: -32, ease: 'none', scrollTrigger: st });
+    g.to('.hero__stage', { y: 70, ease: 'none', scrollTrigger: st });
+    g.to('.hero-art--bg', { y: -26, ease: 'none', scrollTrigger: st });
+    g.to('.hero-art--mid', { y: -12, ease: 'none', scrollTrigger: st });
+    g.to('.hero__copy', { y: -40, ease: 'none', scrollTrigger: st });
+    g.to('.scroll-cue', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: '20% top', scrub: true } });
   });
+  mm.add('(max-width: 899.98px)', () => { g.set('.hero__stage, .hero-art--bg, .hero-art--mid, .hero__copy, .scroll-cue', { clearProps: 'all' }); });
 
-  // 01 Serviços: cards entram com stagger suave
-  const serviceCards = $$('.cards .card');
-  if (serviceCards.length) {
-    g.fromTo(serviceCards,
-      { y: 40, opacity: 0 },
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.85,
-        stagger: 0.12,
-        ease: EASE,
-        scrollTrigger: {
-          trigger: '.cards',
-          start: 'top 85%',
-          once: true,
-        }
-      }
-    );
+  // Hero: a logo mecânica e as engrenagens secundárias. Quatro movimentos independentes:
+  // 1. Engrenagem central: ângulo = função direta da rolagem (desce: horário; sobe:
+  //    anti-horário; parou: parou). Só transform: nunca mexe em opacidade.
+  // 2. Pás: sentido oposto, 0,45x, com atraso amortecido e deriva lenta própria.
+  // 3. Engrenagens secundárias: giro lento próprio (+ um pouco de rolagem), com as
+  //    relações de dentes do trem (data-ratio) para engrenarem de verdade.
+  // 4. Fundo: parallax leve (acima) e pulsos em CSS.
+  // Um único laço: o ticker do GSAP (o mesmo que move o Lenis). Fora da tela ele não calcula.
+  const gearEl = $('.hero-mech__gear');
+  const bladesEl = $('.hero-mech__blades');
+  const sideGears = $$('.hero-art__spin').map((el) => ({ el, ratio: parseFloat(el.dataset.ratio) || 0 }));
+  if (gearEl && bladesEl) {
+    const DEG_PER_PX = 0.2;
+    const BLADE_RATIO = -0.45;
+    const BLADE_DRIFT = 2;      // graus/s
+    const SIDE_SPEED = 4;       // graus/s da engrenagem motora secundária
+    const SIDE_SCROLL = 0.06;   // graus/px
+    let heroVisible = true;
+    let bladeAngle = 0;
+    let bladeDrift = 0;
+    let sideTime = 0;
+    let first = true;
+    new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; first = first || e.isIntersecting; }).observe(hero);
+    const rotate = (el, deg) => { el.style.transform = `rotate(${deg.toFixed(2)}deg)`; };
+    g.ticker.add((time, dt) => {
+      if (!heroVisible) return;
+      const step = Math.min(dt, 64) / 1000;
+      const y = lenis ? lenis.scroll : window.scrollY;
+      const gearAngle = y * DEG_PER_PX;
+      if (!heroPaused) { bladeDrift += BLADE_DRIFT * step; sideTime += SIDE_SPEED * step; }
+      const target = gearAngle * BLADE_RATIO - bladeDrift;
+      // Ao (re)entrar no hero as pás já começam no ângulo certo, sem "correr atrás"
+      bladeAngle = first ? target : bladeAngle + (target - bladeAngle) * 0.07;
+      first = false;
+      rotate(gearEl, gearAngle);
+      rotate(bladesEl, bladeAngle);
+      const side = sideTime + y * SIDE_SCROLL;
+      sideGears.forEach(({ el, ratio }) => el.setAttribute('transform', `rotate(${(side * ratio).toFixed(2)})`));
+    });
   }
 
-  // 02 Projetos: lista editorial com entrada suave e parallax na mídia
-  const projectItems = $$('.project');
-  projectItems.forEach((proj) => {
-    g.fromTo(proj,
-      { y: 35, opacity: 0 },
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.85,
-        ease: EASE,
-        scrollTrigger: {
-          trigger: proj,
-          start: 'top 85%',
-          once: true,
-        }
-      }
-    );
-    const img = $('.project__media img', proj);
-    if (img) {
-      g.fromTo(img, { '--py': '-18px' }, {
-        '--py': '18px', ease: 'none',
-        scrollTrigger: { trigger: proj, start: 'top bottom', end: 'bottom top', scrub: true }
-      });
-    }
+  // Entradas de cards, seções e fotos ficam no CSS (ver "Revelação no scroll").
+  // Aqui só o parallax interno das imagens dos projetos, via variável CSS
+  // (não toca em opacity/translate do card, que são do CSS).
+  mm.add('(min-width: 900px)', () => {
+    $$('.project').forEach((article) => {
+      const img = $('.project__media img', article);
+      g.fromTo(img, { '--py': '-18px' }, { '--py': '18px', ease: 'none', scrollTrigger: { trigger: article, start: 'top bottom', end: 'bottom top', scrub: true } });
+    });
   });
-
-  // 03 Quem somos: Galeria da equipe com entrada elegante em cascata
-  const galleryItems = $$('.gallery__item');
-  if (galleryItems.length) {
-    g.fromTo(galleryItems,
-      { y: 35, opacity: 0 },
-      {
-        y: 0,
-        opacity: 1,
-        duration: 0.8,
-        stagger: 0.14,
-        ease: EASE,
-        scrollTrigger: {
-          trigger: '.gallery',
-          start: 'top 85%',
-          once: true,
-        }
-      }
-    );
-  }
 
   // Quem somos: o texto ganha contraste conforme a leitura avança
   const statement = $('.about__statement');
@@ -440,12 +398,12 @@
     });
   }
 
-  // 04 História: sem pin. A linha preenche conforme a rolagem normal e cada marco
+  // História: sem pin. A linha preenche conforme a rolagem normal e cada marco
   // acende quando a linha chega nele (horizontal no desktop, vertical no mobile).
   const historyEl = $('.history');
   const milestones = $$('.milestone');
   const activate = (p) => milestones.forEach((m, i) => m.classList.toggle('is-active', p >= [0.05, 0.5, 0.95][i]));
-  if (historyEl) historyEl.classList.add('history--live');
+  historyEl.classList.add('history--live');
   mm.add({ desk: '(min-width: 900px)', mob: '(max-width: 899.98px)' }, (ctx) => {
     const axis = ctx.conditions.desk ? 'scaleX' : 'scaleY';
     g.set('.timeline__fill', { clearProps: 'transform' });

@@ -251,46 +251,49 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .hero__lead { max-width: 30em; margin-top: var(--s-6); color: var(--ink-2); font-size: 1.125rem; }
 .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-6); margin-top: var(--s-6); }
 
-/* Arte do hero: prancha técnica (fundo), conjuntos laterais (meio) e o conjunto
-   mecânico central. Cada peça que gira é um <svg> próprio: a rotação é transform
-   composto na GPU e as sombras não são repintadas a cada quadro. */
-/* Mobile: palco mais largo que a tela, com o conjunto central no meio dela */
+/* Arte do hero (fiel à referência final): prancha técnica ao fundo, engrenagens
+   secundárias e a logo mecânica. Cada peça da logo que gira é um <svg> próprio,
+   girado por transform. Sem filtros SVG: volume e sombra vêm de gradientes. */
+/* Até 900px: palco mais largo que a tela, com a logo no centro dela */
 .hero__stage {
-  position: relative; z-index: 0; width: 116vw; margin: var(--s-4) 0 0 calc(50vw - 0.56 * 116vw);
-  aspect-ratio: 1000 / 800; pointer-events: none;
+  --stage-w: min(128vw, 820px);
+  position: relative; z-index: 0; width: var(--stage-w); margin: 0 0 var(--s-2) calc(50vw - 0.479 * var(--stage-w));
+  aspect-ratio: 1100 / 780; pointer-events: none;
+}
+@media (max-width: 899.98px) {
+  .hero { display: flex; flex-direction: column; padding-top: calc(var(--header-h) + var(--s-2)); }
+  .hero__stage { order: -1; }
 }
 .hero-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.hero-art--bg, .hero-art--mid { will-change: transform; }
-.hero-art text { font-family: var(--font); font-size: 11px; font-weight: 500; letter-spacing: 0.06em; fill: #8A8F93; }
-.hero-art .hero-art__label--strong { font-weight: 650; fill: #5E6368; }
-.hero-art__veil { fill: rgb(30 32 34 / 0.025); stroke: rgb(30 32 34 / 0.07); stroke-width: 1; }
-.hero-art__veil--2 { fill: rgb(224 106 38 / 0.035); stroke: rgb(224 106 38 / 0.16); }
-.hero-art__center { fill: none; stroke: rgb(30 32 34 / 0.22); stroke-width: 1; stroke-dasharray: 18 4 2 4; }
-.hero-art__construct { fill: none; stroke: rgb(30 32 34 / 0.12); stroke-width: 1; stroke-dasharray: 3 5; }
-.hero-art__dim, .hero-art__frame { fill: none; stroke: rgb(30 32 34 / 0.34); stroke-width: 0.9; }
-.hero-art__arrow { fill: rgb(30 32 34 / 0.45); }
-.hero-art__part { fill: rgb(255 255 255 / 0.55); stroke: rgb(30 32 34 / 0.38); stroke-width: 1; }
-.hero-art__mark { fill: none; stroke: rgb(30 32 34 / 0.35); stroke-width: 1; }
+.hero-art text { font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: 0.03em; fill: #5F6468; }
+.hero-art__plus { opacity: 1; }
+.hero-art__oline { fill: none; stroke: rgb(224 106 38 / 0.13); stroke-width: 1; }
+.hero-art__frame-line { fill: none; stroke: rgb(30 32 34 / 0.16); stroke-width: 1; }
+.hero-art__center { fill: none; stroke: rgb(30 32 34 / 0.22); stroke-width: 1; stroke-dasharray: 16 4 2 4; }
+.hero-art__center--thin { stroke: rgb(30 32 34 / 0.12); }
+.hero-art__construct { fill: none; stroke: rgb(30 32 34 / 0.3); stroke-width: 1; stroke-dasharray: 5 5; }
+.hero-art__tick { fill: none; stroke: rgb(30 32 34 / 0.3); stroke-width: 1; }
+.hero-art__dim { fill: none; stroke: rgb(30 32 34 / 0.42); stroke-width: 0.9; }
+.hero-art__arrow { fill: rgb(30 32 34 / 0.5); }
+.hero-art__hatch { fill: none; stroke: rgb(30 32 34 / 0.16); stroke-width: 0.8; }
 .hero-art__dot { fill: #E06A26; transform-box: fill-box; transform-origin: center; }
-.hero-art__side { fill: #D9DBDB; stroke: #A9ADB0; stroke-width: 1; stroke-linejoin: round; }
-.hero-art__side--light { fill: #E6E7E6; stroke: #B7BBBD; }
-.hero-art__web { fill: none; stroke: #B3B7BA; stroke-width: 1; }
-.hero-art__lighten { fill: var(--paper); stroke: #B3B7BA; stroke-width: 1; }
-.hero-art__hub { fill: #C3C6C8; stroke: #9DA1A4; stroke-width: 1; }
-.hero-art__bore { fill: var(--paper); stroke: #9DA1A4; stroke-width: 1; }
+.hero-art__ring-dot { fill: #E06A26; }
+.hero-art__node { fill: var(--paper); stroke: rgb(30 32 34 / 0.35); stroke-width: 1; }
+.hero-gear--steel { stroke: #6E7276; stroke-width: 1; stroke-linejoin: round; }
+.hero-gear--pale { stroke: #B4B7BA; stroke-width: 1; stroke-linejoin: round; }
+.hero-gear__ring { fill: none; stroke-width: 1.4; }
+.hero-gear__ring--steel { stroke: #6A6E72; }
+.hero-gear__ring--pale { stroke: #AEB2B4; }
+.hero-gear__mark { stroke: rgb(30 32 34 / 0.3); stroke-width: 2; }
 
-.hero-mech { position: absolute; left: 24%; top: 10%; width: 64%; height: 80%; }
+/* Logo mecânica: base fixa (sombras, cruzeta), pás e engrenagem giram separadas */
+.hero-mech { position: absolute; left: 20.636%; top: 6.154%; width: 54.545%; height: 76.923%; }
 .hero-mech__part { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.hero-mech__blades, .hero-mech__gear { will-change: transform; }
-.hero-art__ring-line { fill: none; stroke: rgb(30 32 34 / 0.18); stroke-width: 1; }
-.hero-art__ticks { fill: none; stroke: rgb(30 32 34 / 0.32); stroke-width: 1; }
-.hero-art__rim { fill: none; stroke: rgb(255 255 255 / 0.07); stroke-width: 1.5; }
-.hero-art__rim--in { stroke: rgb(255 255 255 / 0.05); stroke-dasharray: 2 6; }
-.hero-art__gear-chamfer { fill: none; stroke: rgb(255 255 255 / 0.16); stroke-width: 1.2; }
-.hero-art__gear-bore { fill: none; stroke: rgb(0 0 0 / 0.45); stroke-width: 5; }
-.hero-art__gear-mark { fill: #2A2D30; }
-.hero-art__axis { fill: none; stroke: rgb(255 255 255 / 0.08); stroke-width: 1; }
-.hero-art__axis-mark { fill: none; stroke: rgb(224 106 38 / 0.55); stroke-width: 1.2; }
+.hero-mech__blades, .hero-mech__gear { transform-origin: 50% 50%; backface-visibility: hidden; }
+.hero-mech__cross { fill: none; stroke: rgb(30 32 34 / 0.28); stroke-width: 1; stroke-dasharray: 14 4 2 4; }
+.hero-mech__blade { stroke: rgb(30 32 34 / 0.5); stroke-width: 1.2; stroke-linejoin: round; }
+.hero-mech__gear-body { stroke: #2A2D30; stroke-width: 1.2; stroke-linejoin: round; }
+.hero-mech__gear-bevel { stroke: rgb(255 255 255 / 0.14); stroke-width: 1.4; }
 
 /* Pausar animações de fundo (WCAG 2.2.2) */
 .hero__toggle {
@@ -309,13 +312,14 @@ html.motion-off .hero__toggle { display: none; }
 /* Microanimações do fundo: poucas, lentas e só em opacidade/transform */
 @media (prefers-reduced-motion: no-preference) {
   html.motion-ready .hero-art__dot { animation: pulse 3.2s ease-in-out infinite; }
-  html.motion-ready .hero-art__dot--2 { animation-delay: -1.1s; }
-  html.motion-ready .hero-art__dot--3 { animation-delay: -2.2s; }
+  html.motion-ready .hero-art__dot--1 { animation-delay: -0.8s; }
+  html.motion-ready .hero-art__dot--2 { animation-delay: -1.6s; }
+  html.motion-ready .hero-art__dot--3 { animation-delay: -2.4s; }
+  html.motion-ready .hero-art__dot--4 { animation-delay: -1.2s; }
+  html.motion-ready .hero-art__oline { animation: breathe 8s ease-in-out infinite; }
   html.motion-ready .hero-art__flow { animation: flow 14s linear infinite; }
-  html.motion-ready .hero-mech__ring { animation: spin 160s linear infinite; }
-  html.motion-ready .hero-art__veil--2 { animation: breathe 9s ease-in-out infinite; }
   .hero.is-paused .hero-art__dot, .hero.is-paused .hero-art__flow,
-  .hero.is-paused .hero-mech__ring, .hero.is-paused .hero-art__veil--2 { animation-play-state: paused; }
+  .hero.is-paused .hero-art__oline { animation-play-state: paused; }
 }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(1.8); } }
 @keyframes flow { to { stroke-dashoffset: -160; } }
@@ -324,18 +328,18 @@ html.motion-off .hero__toggle { display: none; }
 
 /* Telas pequenas: menos traço técnico, o conjunto central em evidência */
 @media (max-width: 599.98px) {
-  .hero-art__detail, .hero-art--bg text { display: none; }
+  .hero-art text { font-size: 15px; }
 }
 
 .scroll-cue { display: none; }
 @media (min-width: 900px) {
   .hero__stage {
-    position: absolute; top: 50%; right: -3%; width: min(64%, 1000px); margin: 0; translate: 0 -46%;
+    position: absolute; top: 50%; right: -1%; width: 61%; max-width: 1180px; margin: 0; translate: 0 -46%;
   }
   .hero__toggle { right: var(--margin); bottom: var(--s-5); }
 }
 @media (min-width: 900px) and (max-width: 1279.98px) {
-  .hero__stage { right: -9%; }
+  .hero__stage { width: 60%; right: -4%; }
   .scroll-cue {
     position: absolute; left: 50%; bottom: var(--s-5); translate: -50% 0;
     display: flex; flex-direction: column; align-items: center; gap: var(--s-3);
@@ -712,7 +716,8 @@ html.js .wa-float:not(.is-visible) { opacity: 0; transform: translateY(8px); poi
 @keyframes rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
 @keyframes fade-up { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes mech-in { from { opacity: 0; scale: 0.94; } to { opacity: 1; scale: 1; } }
+@keyframes mech-in { from { scale: 0.965; } to { scale: 1; } }
+@keyframes soft-in { from { opacity: 0.35; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: no-preference) {
   html.js .hero .line__inner { animation: rise 1s var(--ease) 0.1s both; }
@@ -722,9 +727,8 @@ html.js .wa-float:not(.is-visible) { opacity: 0; transform: translateY(8px); poi
   html.js .hero__kicker { animation: fade-up 0.8s var(--ease) both; }
   html.js .hero__lead { animation: fade-up 0.9s var(--ease) 0.55s both; }
   html.js .hero__actions { animation: fade-up 0.9s var(--ease) 0.68s both; }
-  html.js .hero-art--bg { animation: fade-in 1.8s var(--ease) 0.1s both; }
-  html.js .hero-art--mid { animation: fade-in 1.6s var(--ease) 0.5s both; }
-  html.js .hero-mech { animation: mech-in 1.4s var(--ease) 0.25s both; }
+  html.js .hero-art--bg, html.js .hero-art--mid { animation: soft-in 1.2s var(--ease) backwards; }
+  html.js .hero-mech { animation: mech-in 1s var(--ease) backwards; }
   html.js .scroll-cue { animation: fade-in 1s var(--ease) 1.2s backwards; }
 
   .sec-head, .gallery__item, .partner, .about__text, .partners__cta, .contact__intro, .form, [data-reveal] {
