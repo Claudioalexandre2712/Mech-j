@@ -9,7 +9,9 @@ import os
 import re
 import smtplib
 import ssl
+import urllib.error
 import urllib.request
+from html import escape
 from email.message import EmailMessage
 from email.utils import formataddr
 
@@ -67,25 +69,55 @@ def validate(data):
     return errors
 
 
+DEFAULT_TO = "mechjr.eng@gmail.com"
+
+
+def recipient():
+    return env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO", default=DEFAULT_TO)
+
+
+def sender_email():
+    return env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or env("SMTP_USER")
+
+
 def compose(data):
-    subject = f"Contato pelo site: {data['nome']} ({data['area']})"
-    body = (
-        f"Nome: {data['nome']}\n"
-        f"E-mail: {data['email']}\n"
-        f"Telefone: {data['telefone'] or 'não informado'}\n"
-        f"Área de interesse: {data['area']}\n\n"
-        f"Mensagem:\n{data['mensagem']}\n"
+    """Assunto padronizado, versão texto e versão HTML em tabela (fácil de filtrar no Gmail)."""
+    subject = f"[Site Mech Jr] {data['area']} - {data['nome']}"
+    rows = (
+        ("Nome", data["nome"]),
+        ("E-mail", data["email"]),
+        ("Telefone", data["telefone"] or "não informado"),
+        ("Área de interesse", data["area"]),
     )
-    return subject, body
+    text = "Novo contato recebido pelo site da Mech Jr\n\n" + "".join(f"{k}: {v}\n" for k, v in rows)
+    text += f"\nMensagem:\n{data['mensagem']}\n\nResponda este e-mail para falar direto com o cliente.\n"
+    td = 'style="padding:8px 12px;border-bottom:1px solid #E6E8EC;font:14px Arial,sans-serif;'
+    cells = "".join(
+        f'<tr><th align="left" {td}color:#5B6166;width:150px">{escape(k)}</th><td {td}color:#111315">{escape(v)}</td></tr>'
+        for k, v in rows
+    )
+    msg = escape(data["mensagem"]).replace("\n", "<br>")
+    html = (
+        '<div style="background:#F3F3F0;padding:24px">'
+        '<table role="presentation" width="100%" style="max-width:620px;margin:auto;background:#fff;border-collapse:collapse;border-top:4px solid #E06A26">'
+        '<tr><td colspan="2" style="padding:18px 12px;font:600 18px Arial,sans-serif;color:#111315">Novo contato pelo site</td></tr>'
+        f"{cells}"
+        f'<tr><td colspan="2" style="padding:14px 12px;font:14px/1.55 Arial,sans-serif;color:#111315"><strong>Mensagem</strong><br>{msg}</td></tr>'
+        '<tr><td colspan="2" style="padding:12px;font:12px Arial,sans-serif;color:#5B6166">Responda este e-mail para falar direto com o cliente.</td></tr>'
+        "</table></div>"
+    )
+    return subject, text, html
 
 
-def send_brevo(data, subject, body):
+def send_brevo(data, subject, body, html):
     payload = {
-        "sender": {"name": env("SENDER_NAME", "Site Mech Jr"), "email": env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or env("SMTP_USER")},
-        "to": [{"email": env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO")}],
+        "sender": {"name": env("SENDER_NAME", default="Site Mech Jr"), "email": sender_email()},
+        "to": [{"email": recipient(), "name": "Mech Jr"}],
         "replyTo": {"email": data["email"], "name": data["nome"]},
         "subject": subject,
         "textContent": body,
+        "htmlContent": html,
+        "tags": ["site-contato"],
     }
     req = urllib.request.Request(
         "https://api.brevo.com/v3/smtp/email",
@@ -93,18 +125,29 @@ def send_brevo(data, subject, body):
         headers={"api-key": env("BREVO_API_KEY"), "Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10) as res:
-        return 200 <= res.status < 300
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            return 200 <= res.status < 300
+    except urllib.error.HTTPError as exc:
+        # Registra o código e a resposta do Brevo (nunca a chave) para diagnóstico nos logs da Vercel
+        detail = exc.read(400).decode("utf-8", "replace")
+        app.logger.error("Brevo recusou o envio: HTTP %s %s", exc.code, detail)
+        raise SendError(f"brevo_{exc.code}") from None
 
 
-def send_smtp(data, subject, body):
+class SendError(Exception):
+    pass
+
+
+def send_smtp(data, subject, body, html):
     user, password = env("SMTP_USER"), env("SMTP_PASS")
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = formataddr((env("SENDER_NAME", "Site Mech Jr"), env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or user))
-    msg["To"] = env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO")
+    msg["From"] = formataddr((env("SENDER_NAME", default="Site Mech Jr"), sender_email() or user))
+    msg["To"] = recipient()
     msg["Reply-To"] = formataddr((data["nome"], data["email"]))
     msg.set_content(body)
+    msg.add_alternative(html, subtype="html")
     host, port = env("SMTP_HOST", "smtp.gmail.com"), int(env("SMTP_PORT", "587") or 587)
     context = ssl.create_default_context()
     if port == 465:
@@ -120,17 +163,17 @@ def send_smtp(data, subject, body):
 
 
 def configured():
-    if not env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO"):
-        return None
-    if env("BREVO_API_KEY") and (env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or env("SMTP_USER")):
+    if env("BREVO_API_KEY") and sender_email():
         return "brevo"
     if env("SMTP_USER") and env("SMTP_PASS"):
         return "smtp"
     return None
 
 
-def reply(status, ok, message, errors=None):
+def reply(status, ok, message, errors=None, code=None):
     body = {"ok": ok, "message": message}
+    if code:
+        body["code"] = code  # motivo sem segredos, para diagnóstico
     if errors:
         body["errors"] = errors
     res = jsonify(body)
@@ -172,21 +215,24 @@ def contato():
 
     provider = configured()
     if not provider:
-        app.logger.error("Formulário sem configuração de e-mail (EMAIL_TO + BREVO_API_KEY ou SMTP_USER/SMTP_PASS).")
-        return reply(503, False, "Envio indisponível no momento.")
+        app.logger.error("Formulário sem configuração de e-mail (BREVO_API_KEY + SENDER_EMAIL ou SMTP_USER/SMTP_PASS).")
+        return reply(503, False, "Envio indisponível no momento.", code="not_configured")
 
-    subject, body = compose(data)
-    sent = False
+    subject, body, html = compose(data)
+    sent, code = False, None
     try:
-        sent = send_brevo(data, subject, body) if provider == "brevo" else send_smtp(data, subject, body)
+        sent = send_brevo(data, subject, body, html) if provider == "brevo" else send_smtp(data, subject, body, html)
+    except SendError as exc:
+        code = str(exc)
     except Exception as exc:  # noqa: BLE001 - registra e tenta o SMTP como reserva
+        code = f"{provider}_{type(exc).__name__}"
         app.logger.error("Falha no envio via %s: %s", provider, type(exc).__name__)
     if not sent and provider == "brevo" and env("SMTP_USER") and env("SMTP_PASS"):
         try:
-            sent = send_smtp(data, subject, body)
+            sent = send_smtp(data, subject, body, html)
         except Exception as exc:  # noqa: BLE001
             app.logger.error("Falha no envio via SMTP: %s", type(exc).__name__)
 
     if sent:
         return reply(200, True, "Mensagem enviada.")
-    return reply(502, False, "Não foi possível enviar agora.")
+    return reply(502, False, "Não foi possível enviar agora.", code=code or "send_failed")
