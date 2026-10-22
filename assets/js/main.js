@@ -271,7 +271,7 @@
         } else if (res.status === 429) {
           setStatus('err', 'Muitas tentativas seguidas. Aguarde um minuto e envie de novo.');
         } else {
-          setStatus('err', 'Não conseguimos enviar agora. Tente de novo em alguns minutos ou fale com a gente pelo WhatsApp (66) 99654-9345.');
+          setStatus('err', 'Não conseguimos enviar agora. Tente de novo em alguns minutos ou fale com a gente pelo WhatsApp (66) 99654-9345.' + (data.code ? ' (código: ' + String(data.code).slice(0, 40) + ')' : ''));
         }
       } catch (_) {
         setStatus('err', 'Sem conexão com o servidor. Verifique sua internet e tente de novo, ou use o WhatsApp (66) 99654-9345.');
