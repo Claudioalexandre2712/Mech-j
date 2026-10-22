@@ -890,16 +890,16 @@ html.lenis, html.lenis body { height: auto; }
 .contact--cad .channel:hover::after, .contact--cad .channel:focus-visible::after { opacity: 1; transform: translateX(0); }
 
 .contact--cad .form {
-  background: #FFFFFF; border: 1px solid rgb(17 19 21 / 0.10);
+  background: #FFFFFF; border: 1px solid #C9CDD1;
   box-shadow: 0 1px 0 rgb(17 19 21 / 0.04), 0 30px 60px -30px rgb(17 19 21 / 0.30);
 }
 .contact--cad .field label { color: #111315; }
 .contact--cad .field__optional, .contact--cad .field__hint { color: #5B6166; }
 .contact--cad .field input, .contact--cad .field select, .contact--cad .field textarea {
-  min-height: 48px; background: #FAFAF8; color: #111315; border: 1px solid #C9CDD1;
+  min-height: 48px; background: #FFFFFF; color: #111315; border: 1.5px solid #8A9096;
   transition: border-color 200ms var(--ease), box-shadow 250ms var(--ease), background-color 200ms var(--ease);
 }
-.contact--cad .field input:hover, .contact--cad .field select:hover, .contact--cad .field textarea:hover { border-color: #8D9398; }
+.contact--cad .field input:hover, .contact--cad .field select:hover, .contact--cad .field textarea:hover { border-color: #4A4F54; }
 .contact--cad .field input:focus-visible, .contact--cad .field select:focus-visible, .contact--cad .field textarea:focus-visible {
   outline: none; background: #FFFFFF; border-color: #E06A26; box-shadow: 0 0 0 3px rgb(224 106 38 / 0.25);
 }
