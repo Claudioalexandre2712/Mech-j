@@ -20,6 +20,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024  # 16 KB: mais que suficiente para 
 
 AREAS = (
     "Projetos Mecânicos",
+    "Simulação computacional de componentes mecânicos",
     "Modelagem 3D para manufatura aditiva",
     "Desenvolvimento de Plataformas Digitais",
 )
