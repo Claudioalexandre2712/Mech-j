@@ -864,7 +864,10 @@ html.lenis, html.lenis body { height: auto; }
 .contact--cad .contact__text { color: #4A4F54; }
 .contact--cad :focus-visible { outline-color: #C85210; }
 
-.contact--cad .channels { display: grid; gap: var(--s-3); border-top: 0; }
+.contact--cad .channels {
+  display: grid; gap: var(--s-3); border-top: 0; padding: var(--s-3);
+  background: #F3F4F5; border: 1px solid #D5D8DB; border-radius: calc(var(--radius-lg) + 4px);
+}
 .contact--cad .channel {
   position: relative; gap: var(--s-4); min-height: 72px; padding: var(--s-3) var(--s-4);
   border: 1px solid rgb(17 19 21 / 0.10); border-radius: var(--radius-lg);
