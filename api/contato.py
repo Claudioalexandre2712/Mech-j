@@ -31,8 +31,17 @@ CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 MIN_FILL_MS = 2500  # envios mais rápidos que isso são tratados como robôs
 
 
-def env(name, default=""):
-    return os.environ.get(name, default).strip()
+def env(*names, default=""):
+    for name in names:
+        val = os.environ.get(name)
+        if val is not None and val.strip():
+            return val.strip()
+    for name in names:
+        target = name.upper().replace("-", "_").replace(" ", "_")
+        for k, v in os.environ.items():
+            if k.upper().replace("-", "_").replace(" ", "_") == target and v.strip():
+                return v.strip()
+    return default
 
 
 def clean(value, limit, single_line=True):
@@ -72,8 +81,8 @@ def compose(data):
 
 def send_brevo(data, subject, body):
     payload = {
-        "sender": {"name": env("SENDER_NAME", "Site Mech Jr"), "email": env("SENDER_EMAIL") or env("SMTP_USER")},
-        "to": [{"email": env("EMAIL_TO")}],
+        "sender": {"name": env("SENDER_NAME", "Site Mech Jr"), "email": env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or env("SMTP_USER")},
+        "to": [{"email": env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO")}],
         "replyTo": {"email": data["email"], "name": data["nome"]},
         "subject": subject,
         "textContent": body,
@@ -92,8 +101,8 @@ def send_smtp(data, subject, body):
     user, password = env("SMTP_USER"), env("SMTP_PASS")
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = formataddr((env("SENDER_NAME", "Site Mech Jr"), env("SENDER_EMAIL") or user))
-    msg["To"] = env("EMAIL_TO")
+    msg["From"] = formataddr((env("SENDER_NAME", "Site Mech Jr"), env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or user))
+    msg["To"] = env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO")
     msg["Reply-To"] = formataddr((data["nome"], data["email"]))
     msg.set_content(body)
     host, port = env("SMTP_HOST", "smtp.gmail.com"), int(env("SMTP_PORT", "587") or 587)
@@ -111,9 +120,9 @@ def send_smtp(data, subject, body):
 
 
 def configured():
-    if not env("EMAIL_TO"):
+    if not env("EMAIL_TO", "E-MAIL_TO", "E_MAIL_TO"):
         return None
-    if env("BREVO_API_KEY") and (env("SENDER_EMAIL") or env("SMTP_USER")):
+    if env("BREVO_API_KEY") and (env("SENDER_EMAIL", "E-MAIL DO REMETENTE", "E_MAIL_DO_REMETENTE") or env("SMTP_USER")):
         return "brevo"
     if env("SMTP_USER") and env("SMTP_PASS"):
         return "smtp"
